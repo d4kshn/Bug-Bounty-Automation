@@ -1,0 +1,338 @@
+name: ${COMPOSE_PROJECT_NAME:-bbpipeline}
+
+x-app-environment: &app-environment
+  BB_DB_HOST: db
+  BB_DB_PORT: "5432"
+  BB_DB_NAME: ${POSTGRES_DB:-bbpipeline}
+  BB_DB_USER: ${POSTGRES_USER:-bbpipeline}
+  BB_DB_PASSWORD_FILE: /run/secrets/postgres_password
+  BB_CONFIG_DIR: /config
+  BB_PROGRAM_DIR: /config/programs
+  BB_NUCLEI_PROFILE_DIR: /config/nuclei/profiles
+  BB_EVIDENCE_DIR: /data/evidence
+  BB_TTP_DIR: /app/methodology/ttp_cards
+  BB_SKILL_DIR: /app/skills/bug-bounty-review
+  BB_SCHEMA_DIR: /app/schemas
+  BB_API_TOKEN_FILE: /run/secrets/api_token
+  BB_DISCORD_WEBHOOK_FILE: /run/secrets/discord_webhook
+  BB_GITHUB_TOKEN_FILE: /run/secrets/github_token
+  BB_SHODAN_API_KEY_FILE: /run/secrets/shodan_api_key
+  BB_RESEARCHER_HEADERS_FILE: /run/secrets/researcher_headers.json
+  BB_ANTHROPIC_API_KEY_FILE: /run/secrets/anthropic_api_key
+  BB_OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
+  BB_LOG_LEVEL: ${BB_LOG_LEVEL:-INFO}
+  BB_WORKER_POLL_SECONDS: ${BB_WORKER_POLL_SECONDS:-5}
+  BB_SCHEDULER_POLL_SECONDS: ${BB_SCHEDULER_POLL_SECONDS:-30}
+  BB_JOB_LEASE_SECONDS: ${BB_JOB_LEASE_SECONDS:-7200}
+  BB_DEFAULT_RETENTION_DAYS: ${BB_DEFAULT_RETENTION_DAYS:-90}
+  BB_MAX_CONTEXT_BYTES: ${BB_MAX_CONTEXT_BYTES:-32768}
+  BB_CODEX_MODEL: ${BB_CODEX_MODEL:-}
+  BB_CLAUDE_MODEL: ${BB_CLAUDE_MODEL:-}
+
+x-service-security: &service-security
+  cap_drop: [ALL]
+  security_opt:
+    - no-new-privileges:true
+  init: true
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  db:
+    image: ${POSTGRES_IMAGE:-postgres:17.10-bookworm}
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-bbpipeline}
+      POSTGRES_USER: ${POSTGRES_USER:-bbpipeline}
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+      - grafana_db_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init.sh:/docker-entrypoint-initdb.d/20-grafana-reader.sh:ro
+    networks: [backend]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 2
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  api:
+    <<: *service-security
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.12-slim-bookworm}
+    command: [api, --host, 0.0.0.0, --port, "8080"]
+    environment: *app-environment
+    secrets:
+      - postgres_password
+      - api_token
+    volumes:
+      - ./config:/config:ro
+      - evidence:/data/evidence
+    networks: [backend]
+    ports:
+      - "${API_BIND:-127.0.0.1}:${API_PORT:-8080}:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=0700
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/readyz', timeout=3)"
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    pids_limit: 128
+    mem_limit: 1g
+    cpus: 1
+
+  scheduler:
+    <<: *service-security
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.12-slim-bookworm}
+    command: [scheduler]
+    environment:
+      <<: *app-environment
+      BB_WORKER_ID: scheduler
+    secrets:
+      - postgres_password
+    volumes:
+      - ./config:/config:ro
+    networks: [backend]
+    depends_on:
+      api:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=0700
+    pids_limit: 128
+    mem_limit: 512m
+    cpus: 0.5
+
+  scanner:
+    <<: *service-security
+    build:
+      context: .
+      dockerfile: docker/scanner.Dockerfile
+      args:
+        BBOT_BASE_IMAGE: ${BBOT_BASE_IMAGE:-blacklanternsecurity/bbot:stable-full}
+        BBOT_VERSION: ${BBOT_VERSION:-3.0.1}
+        NUCLEI_VERSION: ${NUCLEI_VERSION:-3.11.1}
+        NUCLEI_TEMPLATES_VERSION: ${NUCLEI_TEMPLATES_VERSION:-10.4.7}
+        NUCLEI_TEMPLATES_COMMIT: ${NUCLEI_TEMPLATES_COMMIT:-83234ce}
+        GITLEAKS_VERSION: ${GITLEAKS_VERSION:-8.28.0}
+    command: [worker, --queues, scan]
+    environment:
+      <<: *app-environment
+      BB_WORKER_ID: scanner
+    secrets:
+      - postgres_password
+      - discord_webhook
+      - github_token
+      - shodan_api_key
+      - researcher_headers
+    volumes:
+      - ./config:/config:ro
+      - evidence:/data/evidence
+    networks: [backend, egress]
+    depends_on:
+      api:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=0700,exec
+      - /home/bbpipeline:uid=10001,gid=10001,mode=0700
+    pids_limit: 1024
+    mem_limit: 8g
+    cpus: 4
+
+  codex-worker:
+    <<: *service-security
+    profiles: [llm]
+    build:
+      context: .
+      dockerfile: docker/llm-codex.Dockerfile
+      args:
+        CODEX_VERSION: ${CODEX_VERSION:-0.147.0}
+    command: [llm-worker, --provider, codex]
+    environment:
+      <<: *app-environment
+      BB_WORKER_ID: codex
+      CODEX_HOME: /home/bbpipeline/.codex
+    secrets:
+      - postgres_password
+      - openai_api_key
+    volumes:
+      - ./config:/config:ro
+      - evidence:/data/evidence
+      - codex_auth:/home/bbpipeline/.codex
+    networks: [backend, egress]
+    depends_on:
+      api:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=0700
+      - /home/bbpipeline/.cache:uid=10001,gid=10001,mode=0700
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 1
+
+  claude-worker:
+    <<: *service-security
+    profiles: [llm]
+    build:
+      context: .
+      dockerfile: docker/llm-claude.Dockerfile
+      args:
+        CLAUDE_CODE_VERSION: ${CLAUDE_CODE_VERSION:-2.1.234}
+    command: [llm-worker, --provider, claude]
+    environment:
+      <<: *app-environment
+      BB_WORKER_ID: claude
+      CLAUDE_CONFIG_DIR: /home/bbpipeline/.claude
+    secrets:
+      - postgres_password
+      - anthropic_api_key
+    volumes:
+      - ./config:/config:ro
+      - evidence:/data/evidence
+      - claude_auth:/home/bbpipeline/.claude
+    networks: [backend, egress]
+    depends_on:
+      api:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=0700
+      - /home/bbpipeline/.cache:uid=10001,gid=10001,mode=0700
+    pids_limit: 256
+    mem_limit: 2g
+    cpus: 1
+
+  grafana:
+    image: ${GRAFANA_IMAGE:-grafana/grafana:12.4.0}
+    restart: unless-stopped
+    entrypoint: [/opt/bbpipeline/grafana-entrypoint.sh]
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD__FILE: /run/secrets/grafana_admin_password
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SERVER_HTTP_ADDR: 0.0.0.0
+      GF_SERVER_HTTP_PORT: "3000"
+      POSTGRES_DB: ${POSTGRES_DB:-bbpipeline}
+    secrets:
+      - grafana_admin_password
+      - grafana_db_password
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./docker/grafana-entrypoint.sh:/opt/bbpipeline/grafana-entrypoint.sh:ro
+      - ./deploy/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./deploy/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks: [backend]
+    ports:
+      - "${DASHBOARD_BIND:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 1g
+    cpus: 1
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  test:
+    profiles: [test]
+    build:
+      context: .
+      dockerfile: docker/app.Dockerfile
+      target: test
+      args:
+        PYTHON_IMAGE: ${PYTHON_IMAGE:-python:3.12-slim-bookworm}
+    environment:
+      BB_DATABASE_URL: sqlite+pysqlite:////tmp/bbpipeline-tests.sqlite3
+      BB_PROGRAM_DIR: /config/programs
+      BB_NUCLEI_PROFILE_DIR: /config/nuclei/profiles
+      BB_EVIDENCE_DIR: /tmp/evidence
+      BB_TTP_DIR: /app/methodology/ttp_cards
+      BB_SKILL_DIR: /app/skills/bug-bounty-review
+      BB_SCHEMA_DIR: /app/schemas
+    volumes:
+      - ./config:/config:ro
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=0700
+    networks: [backend]
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  postgres_data:
+    name: ${POSTGRES_VOLUME:-bbpipeline_postgres}
+  evidence:
+    name: ${EVIDENCE_VOLUME:-bbpipeline_evidence}
+  grafana_data:
+    name: ${GRAFANA_VOLUME:-bbpipeline_grafana}
+  codex_auth:
+  claude_auth:
+
+networks:
+  backend:
+    internal: true
+  egress: {}
+
+secrets:
+  postgres_password:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/postgres_password
+  grafana_db_password:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/grafana_db_password
+  grafana_admin_password:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/grafana_admin_password
+  api_token:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/api_token
+  discord_webhook:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/discord_webhook
+  github_token:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/github_token
+  shodan_api_key:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/shodan_api_key
+  researcher_headers:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/researcher_headers.json
+  anthropic_api_key:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/anthropic_api_key
+  openai_api_key:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/openai_api_key

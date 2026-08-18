@@ -1,0 +1,16 @@
+.env
+.pytest_cache/
+.ruff_cache/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.coverage
+htmlcov/
+data/
+backups/
+secrets/
+*.log
+*.sqlite3
+/.agents/
+/.claude/settings.local.json
+/.codex/

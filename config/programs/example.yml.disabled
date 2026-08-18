@@ -1,0 +1,73 @@
+# Copy this file to <program_id>.yml and replace every example value from the
+# program's current policy. Files ending in .disabled are deliberately ignored.
+version: 1
+program_id: example-program
+name: Example public program
+platform: hackerone
+policy_url: https://example.invalid/security/policy
+policy_snapshot_file: example-policy.txt
+policy_snapshot_hash: sha256:REPLACE_WITH_HASH_OF_SAVED_POLICY_SNAPSHOT
+approval:
+  approved_hash: sha256:REPLACE_AFTER_REVIEWING_WITH_MANIFEST_HASH
+  approved_by: your-name
+  approved_at: 2026-08-17T00:00:00Z
+scope:
+  include:
+    - type: domain
+      value: "*.example.invalid"
+      note: Wildcard does not include the apex.
+    - type: domain
+      value: example.invalid
+    - type: repository
+      value: example-org/*
+  exclude:
+    - type: domain
+      value: status.example.invalid
+network:
+  allowed_ports: [80, 443]
+  allowed_methods: [GET, HEAD]
+  denied_paths: ["/logout*", "/delete*", "/admin/destructive*"]
+  allowed_paths: ["*"]
+  requests_per_second: 1
+  concurrency: 2
+  timeout_seconds: 15
+  max_requests_per_verification: 5
+  require_https: false
+  allow_private_targets: false
+  resolve_before_scan: true
+  max_cidr_addresses: 256
+identity:
+  required_header: null
+  default_account_role: null
+  approved_account_roles: []
+bbot:
+  enabled: true
+  presets: [subdomain-enum]
+  extra_modules: []
+  max_targets: 100
+nuclei:
+  enabled: false
+  profile: safe-observation
+  profile_hash: sha256:3f0b388e83d9e046de5e04750ab59a5e2c1888d977d8ef955ba9ac4e491cacff
+  max_targets: 100
+repositories:
+  enabled: true
+  max_repository_mb: 500
+  scan_history: true
+shodan:
+  enabled: true
+  max_results_per_query: 100
+verification:
+  auto_http: false
+  allowed_primitives: [http_get, http_head]
+  allow_authenticated: false
+llm:
+  enabled: true
+  trigger_score: 70
+  planner_provider: codex
+  critic_provider: claude
+  max_cards: 5
+schedules: {}
+schedule_jitter_seconds: 300
+retention_days: 90
+notes: Start without schedules. Add one only after a manual scan is reviewed.

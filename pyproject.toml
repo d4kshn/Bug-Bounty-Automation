@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=75", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bbpipeline"
+version = "0.1.0"
+description = "Policy-first bug bounty automation control plane"
+requires-python = ">=3.11"
+dependencies = [
+  "croniter==6.0.0",
+  "fastapi==0.116.1",
+  "httpx==0.28.1",
+  "psycopg[binary]==3.2.9",
+  "pydantic==2.11.7",
+  "pydantic-settings==2.10.1",
+  "PyYAML==6.0.2",
+  "SQLAlchemy==2.0.43",
+  "uvicorn[standard]==0.35.0",
+]
+
+[project.scripts]
+bbpipeline = "bbpipeline.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["bbpipeline*"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["S101"]

@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "verdict",
+    "confidence",
+    "accepted_observations",
+    "benign_explanations",
+    "missing_evidence",
+    "scope_concerns",
+    "impact_assessment",
+    "severity_assessment",
+    "required_manual_checks",
+    "evidence_ids"
+  ],
+  "properties": {
+    "verdict": {
+      "type": "string",
+      "enum": ["supported", "unsupported", "inconclusive", "needs_manual_validation"]
+    },
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "accepted_observations": {"type": "array", "items": {"type": "string"}},
+    "benign_explanations": {"type": "array", "items": {"type": "string"}},
+    "missing_evidence": {"type": "array", "items": {"type": "string"}},
+    "scope_concerns": {"type": "array", "items": {"type": "string"}},
+    "impact_assessment": {"type": "string"},
+    "severity_assessment": {
+      "type": "string",
+      "enum": ["unknown", "info", "low", "medium", "high", "critical"]
+    },
+    "required_manual_checks": {"type": "array", "items": {"type": "string"}},
+    "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+  }
+}

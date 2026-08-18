@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "disposition",
+    "disposition_reason",
+    "title",
+    "vulnerability_class",
+    "trust_boundary",
+    "hypothesis",
+    "observed_facts",
+    "prerequisites",
+    "possible_impact",
+    "severity",
+    "confidence",
+    "evidence_ids",
+    "test_steps",
+    "stop_conditions",
+    "benign_explanations"
+  ],
+  "properties": {
+    "disposition": {
+      "type": "string",
+      "enum": [
+        "candidate",
+        "not_a_finding",
+        "inconclusive",
+        "needs_manual_validation"
+      ]
+    },
+    "disposition_reason": {"type": "string", "minLength": 1, "maxLength": 2000},
+    "title": {"type": "string", "minLength": 1, "maxLength": 500},
+    "vulnerability_class": {"type": "string", "minLength": 1},
+    "trust_boundary": {"type": "string", "minLength": 1},
+    "hypothesis": {"type": "string", "minLength": 1},
+    "observed_facts": {"type": "array", "items": {"type": "string"}},
+    "prerequisites": {"type": "array", "items": {"type": "string"}},
+    "possible_impact": {"type": "string"},
+    "severity": {
+      "type": "string",
+      "enum": ["unknown", "info", "low", "medium", "high", "critical"]
+    },
+    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+    "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+    "test_steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "primitive",
+          "target",
+          "path",
+          "account_role",
+          "purpose",
+          "expected_observation",
+          "falsifier",
+          "max_requests"
+        ],
+        "properties": {
+          "primitive": {
+            "type": "string",
+            "enum": ["http_get", "http_head", "http_options", "manual_required"]
+          },
+          "target": {"type": "string", "minLength": 1},
+          "path": {"type": "string", "pattern": "^/"},
+          "account_role": {"type": ["string", "null"]},
+          "purpose": {"type": "string", "minLength": 1},
+          "expected_observation": {"type": "string", "minLength": 1},
+          "falsifier": {"type": "string", "minLength": 1},
+          "max_requests": {"type": "integer", "minimum": 1, "maximum": 20}
+        }
+      }
+    },
+    "stop_conditions": {"type": "array", "items": {"type": "string"}},
+    "benign_explanations": {"type": "array", "items": {"type": "string"}}
+  }
+}

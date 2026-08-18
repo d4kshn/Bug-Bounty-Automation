@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bug Bounty Finding Triage"
+  short_description: "Triage scanner findings into defensible candidates"
+  default_prompt: "Use $bug-bounty-review to triage this authorized scanner finding and identify the minimum evidence needed to validate or reject it."

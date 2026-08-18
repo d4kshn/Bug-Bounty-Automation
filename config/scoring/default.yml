@@ -1,0 +1,22 @@
+# Documentation for the v1 deterministic scorer in bbpipeline/scoring.py.
+# Values are intentionally code-owned so changing a score requires tests/review.
+version: 1
+llm_gate: new_or_changed_event_and_program_trigger_score
+severity_base:
+  unknown: 10
+  info: 10
+  low: 35
+  medium: 60
+  high: 80
+  critical: 95
+event_type_bonus:
+  SECRET_CANDIDATE: 15
+  VULNERABILITY: 10
+  DANGLING_RESOURCE: 15
+  CLOUD_CANDIDATE: 10
+  URL: -5
+  DNS_NAME: -10
+notes:
+  - Confidence adds up to 10 points; new adds 5; changed adds 10.
+  - Authenticated-surface and cross-source-correlation payload flags each add 10.
+  - This file is descriptive in v1 and is not dynamically loaded.

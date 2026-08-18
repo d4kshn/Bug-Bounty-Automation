@@ -1,0 +1,18 @@
+version: 1
+id: authentication-boundary
+title: Authentication and session boundary review
+tags: [authentication, session, oauth, jwt, url, vulnerability]
+reasoning:
+  - Track identity provider, client, redirect boundary, session, and actor role.
+  - Do not treat token presence or decoding as proof of a bypass.
+  - Require a control showing what an unauthenticated or lower-privileged actor can do.
+safe_checks:
+  - Restrict automated checks to approved read-only roles and headers.
+  - Route browser, login, token exchange, and cross-account steps to manual review in v1.
+stop_conditions:
+  - A check needs credentials not provisioned for research.
+  - A check would send a token to a different origin or use another person's account.
+evidence_required:
+  - Actor/account role and expected access
+  - Redacted request/response comparison
+  - Explicit explanation of the crossed trust boundary

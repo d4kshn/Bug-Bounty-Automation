@@ -1,0 +1,18 @@
+version: 1
+id: access-control-boundary
+title: Access-control boundary review
+tags: [vulnerability, url, access-control, api, authorization]
+reasoning:
+  - Identify the object, actor, tenant, and operation separately.
+  - Prefer a same-role negative control before inferring broken authorization.
+  - Treat a visible identifier as a lead, not proof of unauthorized access.
+safe_checks:
+  - Compare status, response shape, and ownership using approved test accounts only.
+  - Use the smallest read-only request set that can falsify the hypothesis.
+stop_conditions:
+  - A request would mutate data or affect another real user.
+  - Required accounts or authorization are not explicitly approved.
+evidence_required:
+  - Exact endpoint and role used
+  - Authorized control and unauthorized comparison
+  - Redacted response difference

@@ -1,0 +1,18 @@
+version: 1
+id: web-misconfiguration
+title: Web exposure and misconfiguration triage
+tags: [vulnerability, exposure, misconfig, url, http_response]
+reasoning:
+  - Confirm that sensitive content is accessible, not merely named suggestively.
+  - Compare normal and candidate endpoints and account for CDN or generic error pages.
+  - Tie impact to exposed data or capability rather than server fingerprints.
+safe_checks:
+  - Use GET or HEAD with low request counts and no parameter mutation.
+  - Check content type, cache behavior, and a benign negative control.
+stop_conditions:
+  - The check requires downloading bulk data or bypassing an explicit access control.
+  - The endpoint warns against automated access or is excluded by policy.
+evidence_required:
+  - Request URL, method, status, and redacted headers
+  - Small redacted response excerpt
+  - Negative control or benign explanation analysis

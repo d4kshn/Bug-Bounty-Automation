@@ -1,0 +1,4 @@
+Save the program's current policy text here, preserving scope, exclusions,
+automation rules, rate limits, researcher identity requirements, and testing
+restrictions. Rename this file and reference that plain filename from the
+program manifest. Its SHA-256 hash is checked every time manifests are synced.

@@ -1,0 +1,90 @@
+{
+  "annotations": {"list": []},
+  "editable": false,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {"type": "postgres", "uid": "bbpipeline-postgres"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 0, "y": 0},
+      "id": 1,
+      "options": {"showHeader": true},
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT status, count(*) AS total FROM jobs GROUP BY status ORDER BY status",
+          "refId": "A"
+        }
+      ],
+      "title": "Jobs by status",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "bbpipeline-postgres"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 8, "y": 0},
+      "id": 2,
+      "options": {"showHeader": true},
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT status, count(*) AS total FROM findings GROUP BY status ORDER BY status",
+          "refId": "A"
+        }
+      ],
+      "title": "Findings by status",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "bbpipeline-postgres"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 7, "w": 8, "x": 16, "y": 0},
+      "id": 3,
+      "options": {"showHeader": true},
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT id, active, platform, paused_reason FROM programs ORDER BY id",
+          "refId": "A"
+        }
+      ],
+      "title": "Program gates",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "bbpipeline-postgres"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 11, "w": 24, "x": 0, "y": 7},
+      "id": 4,
+      "options": {"showHeader": true},
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT id, program_id, severity, confidence, status, title, updated_at FROM findings ORDER BY updated_at DESC LIMIT 100",
+          "refId": "A"
+        }
+      ],
+      "title": "Recent candidate findings",
+      "type": "table"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": ["bug-bounty", "pipeline"],
+  "templating": {"list": []},
+  "time": {"from": "now-30d", "to": "now"},
+  "timezone": "browser",
+  "title": "Pipeline Overview",
+  "uid": "bbpipeline-overview",
+  "version": 1
+}

@@ -1,0 +1,18 @@
+version: 1
+id: cloud-exposure
+title: Cloud asset and dangling-resource reasoning
+tags: [cloud_asset, storage_bucket, cloud, dns_name, takeover]
+reasoning:
+  - Separate discoverability, public readability, public writability, and claimability.
+  - Match provider error signatures cautiously and require an ownership link.
+  - A dangling DNS response is not by itself a safe authorization to claim a resource.
+safe_checks:
+  - Use metadata or read-only listing requests only when explicitly in scope.
+  - Confirm DNS chains and provider identity without provisioning anything.
+stop_conditions:
+  - Testing requires claiming, creating, uploading, deleting, or modifying a resource.
+  - The resource is not unambiguously tied to the approved program scope.
+evidence_required:
+  - DNS chain or resource identifier
+  - Provider response and timestamp
+  - Scope rule connecting the asset to the program

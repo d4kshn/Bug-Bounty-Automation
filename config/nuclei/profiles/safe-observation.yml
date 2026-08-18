@@ -1,0 +1,12 @@
+version: 1
+name: safe-observation
+template_root: /opt/nuclei-templates
+template_ids: [tech-detect]
+tags: []
+exclude_tags: [fuzz, dast, headless, code, intrusive, dos, default-login, bruteforce]
+severities: [info]
+protocols: [http]
+rate_limit: 1
+concurrency: 2
+timeout_seconds: 10
+retries: 1
