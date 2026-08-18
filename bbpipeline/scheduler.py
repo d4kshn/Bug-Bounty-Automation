@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from bbpipeline.db import session_scope
 from bbpipeline.manifest import ProgramManifest
 from bbpipeline.models import Program, ScheduleState, utcnow
+from bbpipeline.platform_sources import load_platform_sources
 from bbpipeline.programs import sync_programs
 from bbpipeline.queue import enqueue
 from bbpipeline.settings import Settings
@@ -91,6 +92,22 @@ def scheduler_tick(session: Session, settings: Settings, *, now: datetime | None
         priority=1,
         dedupe_key=f"retention:{current.date().isoformat()}",
     )
+    platform_sources = load_platform_sources(settings.platform_source_dir)
+    for invalid in platform_sources.invalid:
+        LOGGER.error("invalid platform source %s: %s", invalid.path, invalid.error)
+    platform_slot = int(current.timestamp()) // settings.platform_sync_seconds
+    for source in platform_sources.loaded:
+        if not source.enabled:
+            continue
+        enqueue(
+            session,
+            queue="scan",
+            kind="platform_sync",
+            program_id=None,
+            payload={"source_id": source.source_id},
+            priority=15,
+            dedupe_key=f"platform-sync:{source.source_id}:{platform_slot}",
+        )
     programs = session.scalars(select(Program).where(Program.active.is_(True))).all()
     queued = 0
     active_keys: set[tuple[str, str]] = set()

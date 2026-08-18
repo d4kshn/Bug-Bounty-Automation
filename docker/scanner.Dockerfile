@@ -1,4 +1,15 @@
 ARG BBOT_BASE_IMAGE=blacklanternsecurity/bbot:stable-full
+FROM golang:1.24-bookworm AS bbscope-builder
+
+ARG BBSCOPE_COMMIT=1e2b837c30789a20784b4fbad3dd09e0ea8e481e
+RUN git clone https://github.com/sw33tLie/bbscope.git /src/bbscope \
+    && git -C /src/bbscope checkout --detach "${BBSCOPE_COMMIT}" \
+    && test "$(git -C /src/bbscope rev-parse HEAD)" = "${BBSCOPE_COMMIT}"
+WORKDIR /src/bbscope
+COPY docker/bbscope-cookie-helper.go ./cmd/bbpipeline-bbscope/main.go
+RUN CGO_ENABLED=0 go build -trimpath -o /out/bbscope . \
+    && CGO_ENABLED=0 go build -trimpath -o /out/bbscope-cookie ./cmd/bbpipeline-bbscope
+
 FROM ${BBOT_BASE_IMAGE}
 
 ARG BBOT_VERSION=3.0.1
@@ -6,6 +17,9 @@ ARG NUCLEI_VERSION=3.11.1
 ARG NUCLEI_TEMPLATES_VERSION=10.4.7
 ARG NUCLEI_TEMPLATES_COMMIT=83234ce
 ARG GITLEAKS_VERSION=8.28.0
+
+COPY --from=bbscope-builder /out/bbscope /usr/local/bin/bbscope
+COPY --from=bbscope-builder /out/bbscope-cookie /usr/local/bin/bbscope-cookie
 
 USER root
 RUN apt-get update \
@@ -37,7 +51,9 @@ RUN set -eux; \
     rm -rf "$temporary"; \
     bbot --version 2>&1 | grep -F "$BBOT_VERSION"; \
     nuclei -version; \
-    gitleaks version
+    gitleaks version; \
+    bbscope --help >/dev/null; \
+    bbscope-cookie --help >/dev/null
 
 # Fail the image build if the bundled/default Gitleaks rules silently detect nothing.
 RUN set -eux; \

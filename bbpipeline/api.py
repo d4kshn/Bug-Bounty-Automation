@@ -13,7 +13,15 @@ from sqlalchemy.orm import Session
 
 from bbpipeline.db import db_ready, init_db, session_factory, session_scope
 from bbpipeline.evidence import EvidenceStore
-from bbpipeline.models import AuditLog, Event, Evidence, Finding, Job, Program
+from bbpipeline.models import (
+    AuditLog,
+    Event,
+    Evidence,
+    Finding,
+    Job,
+    PlatformSourceState,
+    Program,
+)
 from bbpipeline.programs import ProgramUnavailable, require_active_program, sync_programs
 from bbpipeline.queue import cancel, enqueue
 from bbpipeline.redaction import redact, redact_text
@@ -250,6 +258,20 @@ def metrics(
         lines.append(
             f'bbpipeline_findings{{status="{_prometheus_label(status_name)}"}} {count}'
         )
+    lines.extend(
+        [
+            "# HELP bbpipeline_platform_sources Platform sources by status",
+            "# TYPE bbpipeline_platform_sources gauge",
+        ]
+    )
+    for status_name, count in session.execute(
+        select(PlatformSourceState.status, func.count(PlatformSourceState.source_id)).group_by(
+            PlatformSourceState.status
+        )
+    ):
+        lines.append(
+            f'bbpipeline_platform_sources{{status="{_prometheus_label(status_name)}"}} {count}'
+        )
     return PlainTextResponse(
         "\n".join(lines) + "\n",
         media_type="text/plain; version=0.0.4; charset=utf-8",
@@ -270,6 +292,28 @@ def list_programs(session: Session = Depends(get_db)) -> list[dict[str, Any]]:
     return [
         _serialize_program(program)
         for program in session.scalars(select(Program).order_by(Program.id)).all()
+    ]
+
+
+@app.get("/api/v1/platform-sources", dependencies=[Depends(require_api_token)])
+def list_platform_sources(session: Session = Depends(get_db)) -> list[dict[str, Any]]:
+    return [
+        {
+            "source_id": state.source_id,
+            "program_id": state.program_id,
+            "platform": state.platform,
+            "remote_identifier": state.remote_identifier,
+            "status": state.status,
+            "revision_hash": state.revision_hash,
+            "candidate_ready": state.candidate_manifest is not None,
+            "last_checked_at": state.last_checked_at,
+            "last_success_at": state.last_success_at,
+            "changed_at": state.changed_at,
+            "last_error": state.last_error,
+        }
+        for state in session.scalars(
+            select(PlatformSourceState).order_by(PlatformSourceState.source_id)
+        ).all()
     ]
 
 

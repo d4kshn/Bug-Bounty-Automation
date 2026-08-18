@@ -7,7 +7,7 @@ The safe default is inert: the example manifest is ignored, Nuclei and automatic
 ## Runtime flow
 
 ```text
-saved policy + reviewed scope
+platform API/BBscope -> pending candidate -> reviewed policy + scope
           |
           v
  human approval hash (mandatory)
@@ -45,6 +45,9 @@ saved policy + reviewed scope
 - GitHub discovery and Gitleaks history scanning. Candidate secrets are fully redacted and never exercised automatically.
 - Shodan hostname searches filtered back to manifest scope.
 - PostgreSQL-backed jobs with leases, retries, deduplication, schedules, and audit records.
+- Read-only scope import from HackerOne and Intigriti researcher APIs, YesWeHack's
+  OAuth Apps API, and a pinned BBscope Bugcrowd cookie adapter. Imports never
+  overwrite an approved manifest; changes pause only the affected program.
 - A redacted evidence volume with SHA-256 records, 30-day default expiry, and legal holds.
 - Optional Codex and Claude Code workers using fresh, schema-bound, no-tool tasks.
 - A provider-neutral scanner-finding triage skill with source-specific references,
@@ -56,9 +59,10 @@ saved policy + reviewed scope
 ## Start here
 
 1. Read [VPS deployment](docs/VPS-DEPLOYMENT.md).
-2. Enroll a target with [Program onboarding](docs/PROGRAM-ONBOARDING.md).
-3. Operate and review findings with [Operations and human gates](docs/OPERATIONS.md).
-4. Understand the limits in [Threat model](docs/THREAT-MODEL.md).
+2. Configure [Platform scope synchronization](docs/PLATFORM-SCOPE-SYNC.md).
+3. Enroll a target with [Program onboarding](docs/PROGRAM-ONBOARDING.md).
+4. Operate and review findings with [Operations and human gates](docs/OPERATIONS.md).
+5. Understand the limits in [Threat model](docs/THREAT-MODEL.md).
 
 The original architecture decision is preserved in [the final pipeline plan](docs/FINAL-PIPELINE-PLAN.md).
 
@@ -68,6 +72,8 @@ The original architecture decision is preserved in [the final pipeline plan](doc
 bbpipeline/                 Python control plane and adapters
 config/programs/            human-approved manifests
 config/policies/            saved program-policy snapshots
+config/platform-sources/    small selectors for platform-managed scope candidates
+config/candidates/          generated, unapproved review copies (created at runtime)
 config/nuclei/profiles/     hash-approved template profiles
 methodology/ttp_cards/      small task-retrieved reasoning cards
 skills/bug-bounty-review/   model-neutral scanner-finding triage methodology
@@ -79,5 +85,10 @@ tests/                      policy and safety invariant tests
 compose.yml                 VPS service topology
 install.sh                  Debian 12/13 host bootstrap
 ```
+
+Go, BBscope, BBOT, Nuclei, Gitleaks, Python, Codex CLI, and Claude Code are
+installed in their respective pinned container images, not on the Debian host.
+The host installer intentionally installs only Docker/Compose, Tailscale, and
+small administrative packages such as Git, curl, jq, and OpenSSL.
 
 Use this system only on assets for which the applicable program explicitly permits the chosen automation. Platform membership or a public hostname alone is not authorization.

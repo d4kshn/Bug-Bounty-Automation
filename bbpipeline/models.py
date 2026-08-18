@@ -49,6 +49,28 @@ class Program(Base):
     )
 
 
+class PlatformSourceState(Base):
+    __tablename__ = "platform_source_state"
+
+    source_id: Mapped[str] = mapped_column(String(80), primary_key=True)
+    program_id: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    platform: Mapped[str] = mapped_column(String(40), nullable=False)
+    remote_identifier: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(24), default="pending", nullable=False)
+    revision_hash: Mapped[str | None] = mapped_column(String(71))
+    candidate_manifest: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    policy_snapshot: Mapped[str | None] = mapped_column(Text)
+    raw_snapshot: Mapped[dict[str, Any] | None] = mapped_column(JSON)
+    last_error: Mapped[str | None] = mapped_column(Text)
+    last_checked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_success_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    changed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )
+
+
 class Job(Base):
     __tablename__ = "jobs"
     __table_args__ = (

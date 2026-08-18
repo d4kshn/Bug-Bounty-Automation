@@ -8,6 +8,7 @@ x-app-environment: &app-environment
   BB_DB_PASSWORD_FILE: /run/secrets/postgres_password
   BB_CONFIG_DIR: /config
   BB_PROGRAM_DIR: /config/programs
+  BB_PLATFORM_SOURCE_DIR: /config/platform-sources
   BB_NUCLEI_PROFILE_DIR: /config/nuclei/profiles
   BB_EVIDENCE_DIR: /data/evidence
   BB_TTP_DIR: /app/methodology/ttp_cards
@@ -18,6 +19,10 @@ x-app-environment: &app-environment
   BB_GITHUB_TOKEN_FILE: /run/secrets/github_token
   BB_SHODAN_API_KEY_FILE: /run/secrets/shodan_api_key
   BB_RESEARCHER_HEADERS_FILE: /run/secrets/researcher_headers.json
+  BB_HACKERONE_API_TOKEN_FILE: /run/secrets/hackerone_api_token
+  BB_INTIGRITI_API_TOKEN_FILE: /run/secrets/intigriti_api_token
+  BB_YESWEHACK_ACCESS_TOKEN_FILE: /run/secrets/yeswehack_access_token
+  BB_BUGCROWD_SESSION_COOKIE_FILE: /run/secrets/bugcrowd_session_cookie
   BB_ANTHROPIC_API_KEY_FILE: /run/secrets/anthropic_api_key
   BB_OPENAI_API_KEY_FILE: /run/secrets/openai_api_key
   BB_LOG_LEVEL: ${BB_LOG_LEVEL:-INFO}
@@ -26,6 +31,9 @@ x-app-environment: &app-environment
   BB_JOB_LEASE_SECONDS: ${BB_JOB_LEASE_SECONDS:-7200}
   BB_DEFAULT_RETENTION_DAYS: ${BB_DEFAULT_RETENTION_DAYS:-30}
   BB_MAX_CONTEXT_BYTES: ${BB_MAX_CONTEXT_BYTES:-32768}
+  BB_PLATFORM_SYNC_SECONDS: ${BB_PLATFORM_SYNC_SECONDS:-21600}
+  BB_PLATFORM_SOURCE_MAX_STALE_SECONDS: ${BB_PLATFORM_SOURCE_MAX_STALE_SECONDS:-86400}
+  BB_RESEARCHER_HANDLE: ${BB_RESEARCHER_HANDLE:-d4kshn}
   BB_CODEX_MODEL: ${BB_CODEX_MODEL:-}
   BB_CLAUDE_MODEL: ${BB_CLAUDE_MODEL:-}
 
@@ -63,8 +71,8 @@ services:
       retries: 10
       start_period: 20s
     pids_limit: 256
-    mem_limit: 2g
-    cpus: 2
+    mem_limit: 1g
+    cpus: 1
     logging:
       driver: json-file
       options:
@@ -106,8 +114,8 @@ services:
       retries: 10
       start_period: 20s
     pids_limit: 128
-    mem_limit: 1g
-    cpus: 1
+    mem_limit: 384m
+    cpus: 0.5
 
   scheduler:
     <<: *service-security
@@ -132,8 +140,8 @@ services:
     tmpfs:
       - /tmp:uid=10001,gid=10001,mode=0700
     pids_limit: 128
-    mem_limit: 512m
-    cpus: 0.5
+    mem_limit: 256m
+    cpus: 0.25
 
   scanner:
     <<: *service-security
@@ -147,6 +155,7 @@ services:
         NUCLEI_TEMPLATES_VERSION: ${NUCLEI_TEMPLATES_VERSION:-10.4.7}
         NUCLEI_TEMPLATES_COMMIT: ${NUCLEI_TEMPLATES_COMMIT:-83234ce}
         GITLEAKS_VERSION: ${GITLEAKS_VERSION:-8.28.0}
+        BBSCOPE_COMMIT: ${BBSCOPE_COMMIT:-1e2b837c30789a20784b4fbad3dd09e0ea8e481e}
     command: [worker, --queues, scan]
     environment:
       <<: *app-environment
@@ -157,6 +166,10 @@ services:
       - github_token
       - shodan_api_key
       - researcher_headers
+      - hackerone_api_token
+      - intigriti_api_token
+      - yeswehack_access_token
+      - bugcrowd_session_cookie
     volumes:
       - ./config:/config:ro
       - evidence:/data/evidence
@@ -169,8 +182,10 @@ services:
       - /tmp:uid=10001,gid=10001,mode=0700,exec
       - /home/bbpipeline:uid=10001,gid=10001,mode=0700
     pids_limit: 1024
-    mem_limit: 8g
-    cpus: 4
+    # One serialized scanner lane keeps 2-4 staggered programs inside a 4-vCPU,
+    # 8-GiB VPS. Scale out with another worker instead of raising concurrency.
+    mem_limit: 3g
+    cpus: 2
 
   codex-worker:
     <<: *service-security
@@ -201,8 +216,8 @@ services:
       - /tmp:uid=10001,gid=10001,mode=0700
       - /home/bbpipeline/.cache:uid=10001,gid=10001,mode=0700
     pids_limit: 256
-    mem_limit: 2g
-    cpus: 1
+    mem_limit: 1g
+    cpus: 0.75
 
   claude-worker:
     <<: *service-security
@@ -233,8 +248,8 @@ services:
       - /tmp:uid=10001,gid=10001,mode=0700
       - /home/bbpipeline/.cache:uid=10001,gid=10001,mode=0700
     pids_limit: 256
-    mem_limit: 2g
-    cpus: 1
+    mem_limit: 1g
+    cpus: 0.75
 
   grafana:
     image: ${GRAFANA_IMAGE:-grafana/grafana:12.4.0}
@@ -266,8 +281,8 @@ services:
     security_opt:
       - no-new-privileges:true
     pids_limit: 256
-    mem_limit: 1g
-    cpus: 1
+    mem_limit: 384m
+    cpus: 0.5
     logging:
       driver: json-file
       options:
@@ -336,3 +351,11 @@ secrets:
     file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/anthropic_api_key
   openai_api_key:
     file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/openai_api_key
+  hackerone_api_token:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/hackerone_api_token
+  intigriti_api_token:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/intigriti_api_token
+  yeswehack_access_token:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/yeswehack_access_token
+  bugcrowd_session_cookie:
+    file: ${SECRETS_DIR:-/etc/bug-bounty-automation/secrets}/bugcrowd_session_cookie

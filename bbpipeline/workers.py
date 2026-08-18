@@ -20,6 +20,7 @@ from bbpipeline.evidence import EvidenceStore
 from bbpipeline.events import ingest_event
 from bbpipeline.models import Finding, Job
 from bbpipeline.notifications import queue_notification, send_discord
+from bbpipeline.platform_sync import sync_platform_sources
 from bbpipeline.programs import require_active_program, sync_programs
 from bbpipeline.queue import claim, complete, fail, enqueue
 from bbpipeline.redaction import redact, redact_artifact, redact_text
@@ -103,6 +104,12 @@ def process_scan_job(session: Session, settings: Settings, job: Job) -> dict[str
     if job.kind == "retention":
         deleted = EvidenceStore(settings).purge_expired(session)
         return {"deleted_evidence_ids": deleted, "count": len(deleted)}
+    if job.kind == "platform_sync":
+        source_id = str(job.payload.get("source_id") or "")
+        if not source_id:
+            raise ValueError("platform_sync job is missing source_id")
+        results = sync_platform_sources(session, settings, source_id=source_id)
+        return results[0]
 
     if not job.program_id:
         raise ValueError(f"job kind {job.kind} requires program_id")

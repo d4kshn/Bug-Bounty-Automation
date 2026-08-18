@@ -25,7 +25,8 @@ for name in "${required[@]}"; do
 done
 
 # Compose mounts these as secrets, so each file must exist even while it is empty.
-for name in discord_webhook github_token shodan_api_key anthropic_api_key openai_api_key; do
+for name in discord_webhook github_token shodan_api_key anthropic_api_key openai_api_key \
+  hackerone_api_token intigriti_api_token yeswehack_access_token bugcrowd_session_cookie; do
   [[ -e "${secrets_dir}/${name}" ]] || {
     echo "secret file must exist even if empty: ${secrets_dir}/${name}" >&2
     echo "run: sudo ./scripts/bootstrap-secrets.sh" >&2
@@ -35,6 +36,10 @@ done
 
 for name in discord_webhook github_token shodan_api_key; do
   [[ -s "${secrets_dir}/${name}" ]] || echo "warning: optional integration is empty: ${name}" >&2
+done
+
+for name in hackerone_api_token intigriti_api_token yeswehack_access_token bugcrowd_session_cookie; do
+  [[ -s "${secrets_dir}/${name}" ]] || echo "note: platform source disabled until populated: ${name}" >&2
 done
 
 for provider in anthropic openai; do

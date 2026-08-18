@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     config_dir: Path = Path("/config")
     program_dir: Path = Path("/config/programs")
+    platform_source_dir: Path = Path("/config/platform-sources")
     nuclei_profile_dir: Path = Path("/config/nuclei/profiles")
     evidence_dir: Path = Path("/data/evidence")
     ttp_dir: Path = Path("/app/methodology/ttp_cards")
@@ -35,6 +36,12 @@ class Settings(BaseSettings):
     github_token_file: Path = Path("/run/secrets/github_token")
     shodan_api_key_file: Path = Path("/run/secrets/shodan_api_key")
     researcher_headers_file: Path = Path("/run/secrets/researcher_headers.json")
+    hackerone_api_token_file: Path = Path("/run/secrets/hackerone_api_token")
+    intigriti_api_token_file: Path = Path("/run/secrets/intigriti_api_token")
+    yeswehack_access_token_file: Path = Path("/run/secrets/yeswehack_access_token")
+    bugcrowd_session_cookie_file: Path = Path(
+        "/run/secrets/bugcrowd_session_cookie"
+    )
 
     # Optional metered-API credentials. When one is present its worker switches from
     # the subscription OAuth session to key authentication, which allows a stricter
@@ -51,6 +58,13 @@ class Settings(BaseSettings):
     # every planner and critic packet would exceed the ceiling and fail at job time.
     max_context_bytes: int = Field(default=32768, ge=16384, le=131072)
     command_timeout_seconds: int = Field(default=3600, ge=30, le=86400)
+    platform_http_timeout_seconds: int = Field(default=30, ge=5, le=120)
+    platform_sync_seconds: int = Field(default=21600, ge=900, le=604800)
+    platform_source_max_stale_seconds: int = Field(
+        default=86400, ge=3600, le=2592000
+    )
+    researcher_handle: str = "d4kshn"
+    bbscope_cookie_command: str = "bbscope-cookie"
     worker_id: str = "worker"
     codex_model: str = ""
     claude_model: str = ""

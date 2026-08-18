@@ -82,6 +82,7 @@ Runtime state stays outside the repository:
 | Repository secret candidates | GitHub API plus Gitleaks in offline/no-verification mode | Detect candidates without exercising discovered credentials |
 | External asset intelligence | Existing Shodan account; optional free sources after yield testing | Adds historical/external observations while keeping the policy manifest authoritative |
 | Workflow and policy | Python control-plane containers | Straightforward schemas, policy tests, and provider adapters without adopting a second automation platform |
+| Platform scope intake | HackerOne/Intigriti researcher APIs, YesWeHack Apps API, pinned BBscope for Bugcrowd | Removes manual scope transcription while retaining a mandatory approval gate and fail-closed drift detection |
 | Durable state and job queue | PostgreSQL | One backed-up data system is sufficient for the pilot; avoid Redis until throughput demonstrates a need |
 | Evidence | Protected filesystem volume plus optional encrypted object-storage backup | Simple 30-day retention and explicit evidence IDs |
 | Dashboard | Grafana querying PostgreSQL | Useful operational and finding views without building a custom frontend in v1 |
@@ -308,7 +309,7 @@ Discord receives concise events, never raw secrets or full response bodies: poli
 
 ### Buy now
 
-- One Debian 12 or 13 VPS. A sensible starting size is 8 vCPU, 16 GiB RAM, and 200–300 GiB NVMe. Downsize only after observing BBOT/crawler peaks; add worker VPSs instead of removing safety limits if several programs overlap.
+- One Debian 12 or 13 VPS. The deployed pilot profile is bounded for the available 4 vCPU, 8 GiB RAM, and 100 GB storage by serializing scans and staggering two to four programs. Treat 8 vCPU/16 GiB/200 GB as the next upgrade when measured queue age, image/evidence storage, or scanner peaks justify it; add worker capacity instead of removing safety limits.
 - Optional encrypted object-storage backup if losing 30 days of evidence would be unacceptable. Keep it in the same legal/data-residency posture you choose for the VPS.
 
 ### Already sufficient for v1

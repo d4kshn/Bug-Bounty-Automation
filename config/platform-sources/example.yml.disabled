@@ -1,0 +1,8 @@
+version: 1
+source_id: hackerone-example
+program_id: hackerone-example
+platform: hackerone
+remote_identifier: example-handle
+enabled: true
+# The platform API supplies scope and a policy snapshot candidate. This file only
+# enrolls the selected program; it never authorizes scanning by itself.

@@ -8,6 +8,7 @@ __pycache__/
 htmlcov/
 data/
 backups/
+config/candidates/
 secrets/
 *.log
 *.sqlite3

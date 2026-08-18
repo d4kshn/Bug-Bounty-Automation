@@ -9,7 +9,9 @@ from bbpipeline.manifest import (
     ProgramManifest,
     load_manifests,
 )
-from bbpipeline.models import AuditLog, Program
+from bbpipeline.models import AuditLog, PlatformSourceState, Program
+from bbpipeline.platform_sources import load_platform_sources
+from bbpipeline.platform_sync import source_pause_reason
 from bbpipeline.settings import Settings
 
 
@@ -19,6 +21,9 @@ class ProgramUnavailable(RuntimeError):
 
 def sync_programs(session: Session, settings: Settings, *, actor: str = "system") -> list[Program]:
     manifests = load_manifests(settings.program_dir)
+    platform_sources = load_platform_sources(settings.platform_source_dir)
+    configured_sources = {source.source_id: source for source in platform_sources.loaded}
+    sources_by_program = {source.program_id: source for source in platform_sources.loaded}
     seen: set[str] = set()
     synced: list[Program] = []
 
@@ -27,6 +32,8 @@ def sync_programs(session: Session, settings: Settings, *, actor: str = "system"
         seen.add(manifest.program_id)
         program = session.get(Program, manifest.program_id)
         previous_hash = program.manifest_hash if program else None
+        previous_active = bool(program and program.active)
+        previous_paused_reason = program.paused_reason if program else None
         if program is None:
             program = Program(
                 id=manifest.program_id,
@@ -45,9 +52,45 @@ def sync_programs(session: Session, settings: Settings, *, actor: str = "system"
         program.manifest_hash = entry.computed_hash
         program.approved_hash = manifest.approval.approved_hash
         program.manifest = manifest.model_dump(mode="json")
-        program.active = entry.approved
-        if entry.approved:
+        platform_reason = None
+        configured_for_program = sources_by_program.get(manifest.program_id)
+        if manifest.source:
+            configured_source = configured_sources.get(manifest.source.source_id)
+            if configured_source is None or not configured_source.enabled:
+                platform_reason = (
+                    "platform source configuration is absent, invalid, or disabled"
+                )
+            elif (
+                configured_source.program_id != manifest.program_id
+                or configured_source.platform != manifest.source.platform
+                or configured_source.remote_identifier != manifest.source.remote_identifier
+            ):
+                platform_reason = "platform source configuration does not match the manifest"
+            else:
+                platform_reason = source_pause_reason(session, settings, manifest)
+        elif configured_for_program is not None and configured_for_program.enabled:
+            platform_reason = "manifest is not bound to its enrolled platform source"
+        program.active = entry.approved and platform_reason is None
+        if program.active:
             program.paused_reason = None
+            if manifest.source:
+                source_state = session.get(
+                    PlatformSourceState, manifest.source.source_id
+                )
+                if source_state is not None:
+                    source_state.status = "approved"
+        elif platform_reason:
+            program.paused_reason = platform_reason
+            if previous_active or previous_paused_reason != platform_reason:
+                session.add(
+                    AuditLog(
+                        actor=actor,
+                        action="program_paused_platform_gate",
+                        object_type="program",
+                        object_id=manifest.program_id,
+                        details={"reason": platform_reason},
+                    )
+                )
         elif not entry.policy_snapshot_valid:
             program.paused_reason = "policy snapshot is absent or its hash does not match"
         else:

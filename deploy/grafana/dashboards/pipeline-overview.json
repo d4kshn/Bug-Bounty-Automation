@@ -26,6 +26,24 @@
     {
       "datasource": {"type": "postgres", "uid": "bbpipeline-postgres"},
       "fieldConfig": {"defaults": {}, "overrides": []},
+      "gridPos": {"h": 7, "w": 24, "x": 0, "y": 7},
+      "id": 5,
+      "options": {"showHeader": true},
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT source_id, program_id, platform, status, revision_hash, last_success_at, changed_at, last_error FROM platform_source_state ORDER BY source_id",
+          "refId": "A"
+        }
+      ],
+      "title": "Platform scope sources and approval gate",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "postgres", "uid": "bbpipeline-postgres"},
+      "fieldConfig": {"defaults": {}, "overrides": []},
       "gridPos": {"h": 7, "w": 8, "x": 8, "y": 0},
       "id": 2,
       "options": {"showHeader": true},
@@ -62,7 +80,7 @@
     {
       "datasource": {"type": "postgres", "uid": "bbpipeline-postgres"},
       "fieldConfig": {"defaults": {}, "overrides": []},
-      "gridPos": {"h": 11, "w": 24, "x": 0, "y": 7},
+      "gridPos": {"h": 11, "w": 24, "x": 0, "y": 14},
       "id": 4,
       "options": {"showHeader": true},
       "targets": [

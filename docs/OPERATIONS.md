@@ -4,7 +4,7 @@
 
 | Gate | Implemented behavior | Your involvement |
 |---|---|---|
-| Enrollment | Policy file hash and full manifest hash must both match; absent/changed configuration pauses the program | Mandatory on enrollment and every policy/scope change |
+| Enrollment | Latest platform revision, policy file hash, and full manifest hash must all match; absent/changed/stale source data pauses the program | Mandatory on enrollment and every policy/scope change |
 | Scan authorization | Adapters accept only configured target types, exclusions, safe presets/profiles, rates, methods, ports, and paths; DNS/private-IP checks run before active HTTP work | Review every initial canary and any new recipe/profile |
 | Signal value | Events are redacted, deduplicated, diffed, and deterministically scored; unchanged/low-value observations stay out of LLM queues | Tune `llm.trigger_score` during the pilot |
 | Hypothesis | One event and relevant cards enter one fresh schema-bound planner process | Inspect candidates, especially ambiguity/manual prerequisites |
@@ -23,6 +23,8 @@ sudo docker compose run --rm --no-deps api doctor
 sudo docker compose --profile llm run --rm --no-deps claude-worker llm-check --provider claude
 sudo docker compose --profile llm run --rm --no-deps codex-worker llm-check --provider codex
 sudo ./scripts/api.sh /api/v1/programs | jq
+sudo ./scripts/platforms.sh status
+sudo ./scripts/api.sh /api/v1/platform-sources | jq
 sudo ./scripts/api.sh '/api/v1/jobs?limit=50' | jq
 sudo ./scripts/api.sh '/api/v1/events?min_score=70' | jq
 sudo ./scripts/api.sh '/api/v1/findings?status=awaiting_human' | jq
@@ -100,6 +102,10 @@ It captures PostgreSQL, evidence, and configuration, but intentionally excludes 
 - Exhausted failures create a redacted Discord alert.
 - Scanner collection continues when LLM workers are offline; LLM jobs remain queued.
 - A missing/edited manifest or policy snapshot pauses new jobs for that program at worker preflight.
+- A platform scope/policy revision or rejected credential pauses that program
+  immediately. A transient source outage may use the last good snapshot only
+  within the configured 24-hour stale window; generated candidates never
+  overwrite approved files.
 - A manifest that no longer parses or validates pauses only its own program; other programs keep running and the API, scheduler, and workers keep starting. `validate-config` and `doctor` list the offending files under `invalid_manifests`, and two manifests claiming the same `program_id` pause both.
 - An LLM cannot authorize a request. Invalid output fails schema parsing; unsafe steps become manual.
 - Rotate any secret that may have reached logs or evidence, then inspect and delete the affected artifact under a documented incident procedure.

@@ -44,6 +44,10 @@ create_random api_token
 create_empty discord_webhook
 create_empty github_token
 create_empty shodan_api_key
+create_empty hackerone_api_token
+create_empty intigriti_api_token
+create_empty yeswehack_access_token
+create_empty bugcrowd_session_cookie
 # Leave these empty to use each LLM CLI's subscription login. Populating one switches
 # that worker to metered API-key authentication and a stricter sandbox.
 create_empty anthropic_api_key
@@ -63,7 +67,9 @@ fi
 cat <<EOF
 
 Secrets are ready under ${secrets_dir}. Add the Discord webhook, GitHub token,
-and Shodan key with a root-only editor. Do not commit or paste them into logs.
+Shodan key, and the platform credentials you use with a root-only editor. The
+Bugcrowd file accepts the _bugcrowd_session value or a complete Cookie header.
+Do not commit or paste credentials into logs.
 
 anthropic_api_key and openai_api_key are optional and intentionally empty. Leave
 them empty to use the subscription logins created by scripts/login-llms.sh.

@@ -250,6 +250,27 @@ class LlmPolicy(StrictModel):
     max_cards: int = Field(default=5, ge=0, le=8)
 
 
+class PlatformSourceRef(StrictModel):
+    source_id: str
+    platform: Literal["hackerone", "bugcrowd", "intigriti", "yeswehack"]
+    remote_identifier: str
+    revision_hash: str
+
+    @field_validator("source_id")
+    @classmethod
+    def source_id_is_safe(cls, value: str) -> str:
+        if not re.fullmatch(r"[a-z0-9][a-z0-9_-]{1,63}", value):
+            raise ValueError("source_id must contain 2-64 lowercase letters, digits, _ or -")
+        return value
+
+    @field_validator("revision_hash")
+    @classmethod
+    def revision_hash_is_sha256(cls, value: str) -> str:
+        if not re.fullmatch(r"sha256:[0-9a-f]{64}", value):
+            raise ValueError("revision_hash must be a sha256 digest")
+        return value
+
+
 class ProgramManifest(StrictModel):
     version: Literal[1]
     program_id: str
@@ -258,6 +279,7 @@ class ProgramManifest(StrictModel):
     policy_url: str
     policy_snapshot_file: str
     policy_snapshot_hash: str
+    source: PlatformSourceRef | None = None
     approval: Approval
     scope: ScopePolicy
     network: NetworkPolicy = Field(default_factory=NetworkPolicy)
@@ -272,6 +294,12 @@ class ProgramManifest(StrictModel):
     schedule_jitter_seconds: int = Field(default=300, ge=0, le=3600)
     retention_days: int = Field(default=30, ge=1, le=3650)
     notes: str | None = None
+
+    @model_validator(mode="after")
+    def source_platform_matches_manifest(self) -> "ProgramManifest":
+        if self.source and self.source.platform != self.platform:
+            raise ValueError("source platform must match the program platform")
+        return self
 
     @model_validator(mode="after")
     def third_party_scanners_need_host_wide_path_permission(self) -> "ProgramManifest":
