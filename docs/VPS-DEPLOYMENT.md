@@ -119,6 +119,6 @@ Only add a staggered UTC cron after the canary is compliant and useful. Example:
 
 ## Purchases
 
-Buy only the VPS now. Optional encrypted off-host backup storage is worthwhile if losing the 90-day evidence window is unacceptable. Existing ChatGPT Plus/Codex, Claude Pro/Claude Code, Shodan Developer, GitHub, Discord, and Tailscale accounts are enough for the pilot.
+Buy only the VPS now. Optional encrypted off-host backup storage is worthwhile if losing the 30-day evidence window is unacceptable. Existing ChatGPT Plus/Codex, Claude Pro/Claude Code, Shodan Developer, GitHub, Discord, and Tailscale accounts are enough for the pilot.
 
 Defer OpenAI/Anthropic API billing, paid asset feeds, managed PostgreSQL, a second worker VPS, and commercial scanners until a 30-day/two-to-three-program pilot demonstrates a real queue, reliability, or unique-yield bottleneck.

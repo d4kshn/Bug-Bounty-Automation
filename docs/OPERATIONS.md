@@ -76,7 +76,7 @@ A finding cannot be marked submitted before human validation. The API never logs
 
 ## Evidence, retention, and backup
 
-Evidence is redacted before durable storage, written atomically with mode `0600`, addressed by an evidence ID/SHA-256 record, and expires after the program retention period (90 days by default). Retrieve a bounded excerpt or place a retention hold through the private API:
+Evidence is redacted before durable storage, written atomically with mode `0600`, addressed by an evidence ID/SHA-256 record, and expires after the program retention period (30 days by default). The daily retention job removes the artifact file and marks its evidence record deleted; it does not delete findings, events, jobs, held evidence, or separately created backups. Retrieve a bounded excerpt or place a retention hold through the private API:
 
 ```bash
 sudo ./scripts/api.sh '/api/v1/evidence/EVIDENCE_ID?include_excerpt=true&excerpt_bytes=8192' | jq

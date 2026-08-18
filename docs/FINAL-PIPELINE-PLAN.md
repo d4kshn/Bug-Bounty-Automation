@@ -83,7 +83,7 @@ Runtime state stays outside the repository:
 | External asset intelligence | Existing Shodan account; optional free sources after yield testing | Adds historical/external observations while keeping the policy manifest authoritative |
 | Workflow and policy | Python control-plane containers | Straightforward schemas, policy tests, and provider adapters without adopting a second automation platform |
 | Durable state and job queue | PostgreSQL | One backed-up data system is sufficient for the pilot; avoid Redis until throughput demonstrates a need |
-| Evidence | Protected filesystem volume plus optional encrypted object-storage backup | Simple 90-day retention and explicit evidence IDs |
+| Evidence | Protected filesystem volume plus optional encrypted object-storage backup | Simple 30-day retention and explicit evidence IDs |
 | Dashboard | Grafana querying PostgreSQL | Useful operational and finding views without building a custom frontend in v1 |
 | Private administration | Tailscale | No public dashboard or management API |
 | Reasoning workers | Codex and Claude Code adapters, then APIs if justified | Provider-independent packets/schemas and graceful subscription-worker downtime |
@@ -270,7 +270,7 @@ forbidden:
   - social_engineering
   - destructive_data_change
   - accessing_other_users_data
-retention_days: 90
+retention_days: 30
 ```
 
 This example is deliberately restrictive. The compiler may only narrow a platform policy, never broaden it. Authenticated recipes, extra methods/ports, and higher rates are added per program after review.
@@ -283,7 +283,7 @@ This example is deliberately restrictive. The compiler may only narrow a platfor
 - Live HTTP and lightweight technology checks: daily or every 48 hours, within program limits.
 - Crawling and selected Nuclei templates: weekly initially, then tune per program.
 - Repository delta: webhook/poll every 1–6 hours where allowed; full history scan only on enrollment and major changes.
-- Evidence expiry: daily; delete unheld artifacts after 90 days and record the deletion event.
+- Evidence expiry: daily; delete unheld artifacts after 30 days and record the deletion event.
 - Backups: encrypted daily database/config backup, with evidence storage handled according to sensitivity and cost.
 
 Use jitter and per-program queues. Never let a global schedule accidentally concentrate traffic on one target.
@@ -309,7 +309,7 @@ Discord receives concise events, never raw secrets or full response bodies: poli
 ### Buy now
 
 - One Debian 12 or 13 VPS. A sensible starting size is 8 vCPU, 16 GiB RAM, and 200–300 GiB NVMe. Downsize only after observing BBOT/crawler peaks; add worker VPSs instead of removing safety limits if several programs overlap.
-- Optional encrypted object-storage backup if losing 90 days of evidence would be unacceptable. Keep it in the same legal/data-residency posture you choose for the VPS.
+- Optional encrypted object-storage backup if losing 30 days of evidence would be unacceptable. Keep it in the same legal/data-residency posture you choose for the VPS.
 
 ### Already sufficient for v1
 
@@ -370,7 +370,7 @@ Deployment order:
 - Discord contains no credentials, raw secrets, or sensitive full bodies.
 - Subscription worker outage does not stop recon or lose jobs.
 - Every submitted report was manually reproduced and explicitly submitted by the hunter.
-- Evidence expires after 90 days unless placed on a documented hold.
+- Evidence expires after 30 days unless placed on a documented hold.
 
 ## 15. Primary references
 

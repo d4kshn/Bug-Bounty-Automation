@@ -69,5 +69,5 @@ llm:
   max_cards: 5
 schedules: {}
 schedule_jitter_seconds: 300
-retention_days: 90
+retention_days: 30
 notes: Start without schedules. Add one only after a manual scan is reviewed.

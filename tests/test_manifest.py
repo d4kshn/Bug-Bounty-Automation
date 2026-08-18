@@ -13,6 +13,7 @@ from bbpipeline.manifest import (
     load_manifests,
     manifest_hash,
 )
+from bbpipeline.settings import Settings
 
 
 def write_program(directory, raw, filename):
@@ -34,6 +35,11 @@ def approved_program(tmp_path, manifest_raw):
     raw["approval"]["approved_hash"] = manifest_hash(raw)
     write_program(program_dir, raw, "good.yml")
     return program_dir, raw
+
+
+def test_default_evidence_retention_is_30_days(manifest_raw):
+    assert ProgramManifest.model_validate(manifest_raw).retention_days == 30
+    assert Settings(database_url="sqlite+pysqlite:///:memory:").default_retention_days == 30
 
 
 def test_approval_hash_excludes_approval_metadata(manifest_raw, tmp_path):

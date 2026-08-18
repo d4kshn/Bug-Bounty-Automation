@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     worker_poll_seconds: float = Field(default=5.0, ge=0.25, le=300)
     scheduler_poll_seconds: float = Field(default=30.0, ge=5, le=3600)
     job_lease_seconds: int = Field(default=7200, ge=60, le=86400)
-    default_retention_days: int = Field(default=90, ge=1, le=3650)
+    default_retention_days: int = Field(default=30, ge=1, le=3650)
     # The floor must leave room for the triage skill core plus one event. Below it,
     # every planner and critic packet would exceed the ceiling and fail at job time.
     max_context_bytes: int = Field(default=32768, ge=16384, le=131072)

@@ -45,7 +45,7 @@ saved policy + reviewed scope
 - GitHub discovery and Gitleaks history scanning. Candidate secrets are fully redacted and never exercised automatically.
 - Shodan hostname searches filtered back to manifest scope.
 - PostgreSQL-backed jobs with leases, retries, deduplication, schedules, and audit records.
-- A redacted evidence volume with SHA-256 records, 90-day default expiry, and legal holds.
+- A redacted evidence volume with SHA-256 records, 30-day default expiry, and legal holds.
 - Optional Codex and Claude Code workers using fresh, schema-bound, no-tool tasks.
 - A provider-neutral scanner-finding triage skill with source-specific references,
   explicit false-positive dispositions, and no recon or target-discovery role.
